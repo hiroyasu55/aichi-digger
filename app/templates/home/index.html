@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-2">
+  <h2>AICHI-DIGGER</h2>
+
+  <div class="content my-4">
+    <h4>このサイトについて</h4>
+
+    <div class="row mb-4">
+      <div class="col offset-sm-1">
+        <li>愛知県のCOVID-12感染状況を掘り下げるサイトです。</li>
+        <li>データは愛知県その他自治体の発表資料に基づいています。</li>
+      </div>
+    </div>
+
+    <h4>CONTENTS</h4>
+
+    <div class="row mt-6">
+      <div class="col-sm-8">
+        <div class="card">
+          <ul class="list-group">
+            <li class="list-group-item"><a href="/persons">感染者リスト</a></li>
+            <li class="list-group-item"><a href="/tree">感染者ツリー</a> (NEW)</li>
+            <li class="list-group-item"><a href="/contact">お問い合わせ</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content my-4">
+    <div class="row">
+      <div class="col">
+        Powered by <a href="/contact">sekilalara</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+</script>
+{% endblock %}

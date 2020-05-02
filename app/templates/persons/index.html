@@ -1,0 +1,360 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<style>
+.clickable {
+  cursor: pointer;
+}
+.sex-male {
+  color: darkblue;
+}
+.sex-female {
+  color: darkmagenta;
+}
+.fa {
+  margin-right: 4px;
+}
+.row-spot {
+  background-color: #ffbb8e;
+}
+.row-abroad {
+  background-color: #b5d5ff;
+}
+.row-other-area {
+  background-color: #93fcc8;
+}
+.row-recurrence {
+  background-color: #fd6b46;
+}
+.row-unknown {
+  background-color: #ffff80;
+}
+.row-dead {
+  background-color: #4e4645 !important;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .sm-hidden {
+    display: none;
+  }
+}
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <h2>愛知県COVID-12陽性者リスト</h2>
+
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <p class="text-right"><span id='currentDate'></span> 現在</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <p class="text-left">
+          <span id='pageFirstNo'></span> - <span id='pageLastNo'></span> / <span id='pageTotal'></span>
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <table id="personsList" class="table table-bordered table-sm list-table">
+          <thead>
+            <tr class="table-info">
+              <th scope="col">No</th>
+              <th scope="col">発表日</th>
+              <th scope="col">年代 性別 居住地</th>
+              <th scope="col" class="sm-hidden">感染経路</th>
+            </tr>
+          </thead>
+          <tbody id="listBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center" id="pagenation">
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading image -->
+<div>
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+  </div>
+</div>
+
+<div class="display-none">
+
+  <!-- List Row Template -->
+  <table>
+    <tbody>
+      <tr id="listTemplateRow" class="list-row">
+        <th scope="row" name="person.no"></th>
+        <td name="person.release_date"></td>
+        <td name="person.agesexarea"></td>
+        <td name="person.reason" class="sm-hidden"></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script type="module">
+import * as config from '/static/js/config.js'
+import { getQueryParams } from '/static/js/utility.js'
+import * as Person from '/static/js/Person.js'
+
+const queryParams = getQueryParams()
+
+const pager = {
+  page: parseInt(queryParams.page || '1'),
+  rows: config.PERSONS_LIST_ROWS || 20,
+  maxPagers: 5,
+}
+
+/**
+ List Row
+ */
+const createListRow = (person) => {
+  const row = $('#listTemplateRow').clone()
+  row.attr('data-no', person.no)
+  row.find('[name="person.no"]').text(person.no)
+  row.find('[name="person.release_date"]')
+    .text(person.release_date.format('M月D日'))
+  row.find('[name="person.agesexarea"]').html(() => {
+    return $('<a>').attr('href', './' + person.no)
+      .text(
+        (config.AGE[person.age] || person.age + '.')
+        + ' ' + (person.sex == 'unknown' ? '' : (config.SEX[person.sex] || person.sex + '.'))
+        + ' ' + person.area)
+  })
+  if (person['status'] == 'dead') {
+    row.find('[name="person.agesexarea"]').append('<span class="text-danger">（死亡）</span>')
+  }
+
+  const reason = row.find('[name="person.reason"]')
+  reason.removeClass('text-danger')
+  let text = ''
+  switch (person.reason) {
+    case 'contact':
+      reason.html('接触： ')
+      reason.append(() => {
+        if (person.contacts) {
+          return person.contacts.map(c => {
+            return $('<a>').attr('href', './' + c.person_no)
+              .text(c.relationship ? `[${c.person_no}（${c.relationship}）]` : `[${c.person_no}]`)
+          })
+        }
+        else if (person.case) {
+          return person.case
+        } else {
+          return '?'
+        }
+      })
+      break
+    case 'spot':
+      row.addClass('row-spot')
+      reason.text(`${person.spot}`)
+      break
+    case 'abroad':
+      row.addClass('row-abroad')
+      reason.text(`国外（${person.route.country}）`)
+      break
+    case 'other_area':
+      row.addClass('row-other-area')
+      reason.text(`県外（${person.route.area}）`)
+      break
+    case 'recurrence':
+      row.addClass('row-recurrence')
+      reason.text(`再感染： `)
+      reason.append(
+        $('<a>').attr('href', './' + person.former_no)
+          .text(`[${person.former_no}]`)
+      )
+      break
+    case 'other':
+      reason.text(`その他（${person.route.text}）`)
+      break
+    case 'unknown':
+      row.addClass('row-unknown')
+      reason.text('不明')
+      break
+  }
+
+  if (person.status == 'dead') {
+    row.addClass('row-dead')
+  }
+
+  return row
+}
+
+/**
+ * Get Persons
+ */
+const findPersons = () => {
+  const option = {
+    offset: pager.rows * (pager.page - 1),
+    limit: pager.rows,
+  }
+  return Person.find(option)
+  /*
+    .then(result => {
+      result.total = result.persons.length
+      result.persons = result.persons.slice(params.offset, params.offset + params.limit)
+
+      return result
+    })
+  */
+}
+
+
+ /**
+  * Show List
+  */
+const showList = (result) => {
+  return new Promise(resolve => {
+    const persons = result.persons
+    pager.totalRows = result.total
+    pager.totalPages = Math.ceil(pager.totalRows / pager.rows)
+    pager.firstNo = (pager.page - 1) * pager.rows + 1
+    pager.lastNo = Math.min(pager.firstNo + pager.rows - 1, pager.totalRows)
+
+    $('#listBody').html(
+      persons.map(person => {
+        const row = createListRow(person)
+        return row
+      })
+    )
+
+    return resolve(result)
+  })
+}
+
+/**
+ * Show List Pagenation
+ */
+const showListPagenation = (result) => {
+  return new Promise(resolve => {
+    const persons = result.persons
+
+    pager.firstPage = Math.min(
+      Math.max(pager.page - Math.floor(pager.maxPagers / 2), 1),
+      Math.max(pager.totalPages - pager.maxPagers + 1, 1)
+    )
+    pager.lastPage = Math.min(
+      pager.firstPage + pager.maxPagers - 1, pager.totalPages)
+    pager.dispPagers = Math.max(pager.lastPage - pager.firstPage + 1, pager.maxPagers)
+
+    $('#pagenation').empty()
+
+    const preva = $('<a class="page-link" href="#">').text('<<')
+    if (pager.page > 1) {
+      preva.addClass('page-enable')
+        .attr('href', '?page=' + (pager.page - 1))
+    } else {
+      preva.attr('tabindex', '-1')
+    }
+    const prev = $('<li class="page-item">').append(preva)
+    if (pager.page == 1) {
+      prev.addClass('disabled')
+    }
+    $('#pagenation').append(prev)
+
+    if (pager.firstPage >= 2) {
+      $('#pagenation').append(
+        $('<li class="page-item">').append(
+          $('<a class="page-link page-enable" href="#">')
+            .attr('href', '?page=1')
+            .text(1)
+        )
+      )
+      $('#pagenation').append(
+        $('<li class="page-item">').text('...')
+      )
+    }
+
+    for (let p = pager.firstPage; p <= pager.lastPage; p++) {
+      const li = $('<li class="page-item">')
+        .append($('<a class="page-link page-enable">')
+          .attr('href', '?page=' + p)
+          .text(p))
+      if (p == pager.page) li.addClass('active')
+      $('#pagenation').append(li)
+    }
+
+    if (pager.firstPage + pager.dispPagers <= pager.totalPages) {
+      $('#pagenation').append(
+        $('<li class="page-item">').text('...')
+      )
+      $('#pagenation').append(
+        $('<li class="page-item">').append(
+          $('<a class="page-link page-enable" href="#">')
+            .attr('href', '?page=' + pager.totalPages)
+            .text(pager.totalPages)
+        )
+      )
+    }
+
+    const nexta = $('<a class="page-link" href="#">').text('>>')
+    if (pager.page < pager.totalPages) {
+      nexta.addClass('page-enable')
+        .attr('href', '?page=' + (pager.page + 1))
+    } else {
+      nexta.addClass('disabled').attr('tabindex', '-1')
+    }
+    const next = $('<li class="page-item">').append(nexta)
+    if (pager.page == pager.totalPages) {
+      next.addClass('disabled')
+    }
+    $('#pagenation').append(next)
+
+    resolve(result)
+  })
+}
+
+/**
+ * On Load
+ */
+
+Promise.resolve().then(() => {
+  $('#loading').removeClass('loading-stop').addClass('loading-start');
+
+  return findPersons()
+}).then(result => {
+  $('#currentDate').text(result.current_date.format('Y年M年D日'))
+  return showList(result)
+}).then(result => {
+  // Pages count
+  $('#pageFirstNo').text(pager.firstNo)
+  $('#pageLastNo').text(pager.lastNo)
+  $('#pageTotal').text(pager.totalRows)
+
+  // Pagenation
+  return showListPagenation(result)
+}).then(result => {
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+}).catch(e => {
+  console.log(e)
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+
+</script>
+
+{% endblock %}

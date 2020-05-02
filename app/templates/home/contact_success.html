@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content">
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        お問い合わせありがとうございます。
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <a href="/">Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+const openErrorDialog = (text) => {
+  $('#errorDialog').text(text)
+  $('#errorDialog').dialog('open')
+  return false
+}
+
+const getMessage = () => {
+  const message = {
+    name: $('#name').val().trim(),
+    email: $('#email').val().trim(),
+    content: $('#content').val().trim()
+  }
+
+  return message
+}
+
+$('#confirmDialog').dialog({
+  autoOpen: false,
+  modal: true,
+  title: "お問い合わせ",
+  buttons: [
+    {
+      text: '送信',
+      click: (e) => {
+        $("#confirmDialog").dialog('close')
+        href.location('/contact_send')
+      }
+    },
+    {
+      text: 'キャンセル',
+      click: (e) => {
+        $("#confirmDialog").dialog('close')
+      }
+    }
+  ]
+})
+
+$('#errorDialog').dialog({
+  autoOpen: false,
+  modal: true,
+  title: "エラー",
+  buttons: [
+    {
+      text: '確認',
+      click: (e) => {
+        $("#errorDialog").dialog('close')
+      }
+    }
+  ]
+})
+
+$('#sendButton').on('click', e => {
+  const message = getMessage()
+
+  if (message.name.length == 0) {
+    return openErrorDialog('お名前を入力してください。')
+  }
+  if (message.content.length == 0) {
+    return openErrorDialog('お問い合わせ内容を入力してください。')
+  }
+
+  $('#confirmDialog').dialog('open')
+})
+*/
+</script>
+{% endblock %}

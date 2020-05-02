@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content">
+  <h2 class="mt-2">お問い合わせ</h2>
+
+  {% if errors|length > 0 %}
+  <p class='text-danger'>{{ errors[0] }}</p>
+  {% endif %}
+
+  <p>ご自由にご意見ご要望をお聞かせください。</p>
+  <div class="container">
+    <p class="text-right text-danger"><small>※は必須</small></p>
+    <form method="POST" action="/contact">
+      {{ form.csrf_token }}
+      <div class="form-group row">
+        <label for="name" class="col-sm-3 col-form-label">お名前<span class="text-danger">※</span></label>
+        <div class="col-sm-9">
+          {{ form.name(class="form-control", placeholder="お名前") }}
+          {% for error in form.name.errors %}
+          <p class="text-danger">{{ error }}</p>
+          {% endfor %}
+          </div>
+      </div>
+      <div class="form-group row">
+        <label for="email" class="col-sm-3 col-form-label">Email（任意）</label>
+        <div class="col-sm-9">
+          {{ form.email(class="form-control", placeholder="email@example.com") }}
+          {% for error in form.email.errors %}
+          <p class="text-danger">{{ error }}</p>
+          {% endfor %}
+          </div>
+      </div>
+      <div class="form-group row">
+        <label for="content" class="col-sm-3 col-form-label">お言葉<span class="text-danger">※</span></label>
+        <div class="col-sm-9">
+          {{ form.content(class="form-control", placeholder="ご自由にどうぞ。") }}
+          {% for error in form.content.errors %}
+          <p class="text-danger">{{ error }}</p>
+          {% endfor %}
+          </div>
+      </div>
+      <div class="form-group row">
+        <div class="col">
+          <button type="submit" id="sendButton" class="btn btn-primary">送信</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="row">
+      <div class="col">
+        <a href="/">Home</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+</script>
+{% endblock %}

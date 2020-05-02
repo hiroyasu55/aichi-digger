@@ -1,0 +1,189 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<style>
+  .tree {
+    border: darkgray 1px solid;
+  }
+  .tree-root {
+    border: darkgray 1px solid;
+    background-color: lightgreen;
+    font-weight: bold;
+  }
+  .tree-nodes {
+    border: darkgray 1px solid;
+  }
+  </style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <h2>感染者ツリー</h2>
+
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col tree" id="tree">
+      </div>
+    </div>
+  </div>
+
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col">
+        <p class="text-right"><a href="/persons">一覧へ</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading image -->
+  <div>
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <div class="display-none">
+
+    <!-- Root Row Template -->
+    <div id="templateRow" class="">
+      <div class="row tree-root p-2">
+        <div class="col-sm-6 col-12"><span name="person.name"></span></div>
+        <div class="col-sm-3 col-9 offset-sm-0 offset-3"><span name="person.release_date"></span></div>
+        <div class="col-sm-3 col-9 offset-sm-0 offset-3"><span name="person.reason"></span></div>
+      </div>
+      <div class="row">
+        <div class="col tree-nodes"></div>
+      </div>
+    </div>
+
+    <!-- Node Row Template -->
+    <div id="nodeTemplate" class="row node p-2">
+      <div class="col-sm-6 col-12">
+        <div class="d-flex flex-row">
+          <span class="node-header mr-3">-</span>
+          <span name="person.name"></span>
+        </div>
+      </div>
+      <div class="col-sm-3 col-9 offset-sm-0 offset-3"><span name="person.release_date"></span></div>
+      <div class="col-sm-3 col-9 offset-sm-0 offset-3"><span name="person.relationship"></span></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script type="module">
+import * as config from '/static/js/config.js'
+import * as Person from '/static/js/Person.js'
+
+/**
+ * On Load
+ */
+
+let _persons = []
+
+const getPerson = no => {
+  const ps = _persons.filter(p => p.no == no)
+  if (ps.length == 0) {
+    return null
+  }
+
+  return ps[0]
+}
+
+const addNodeRows = (area, nodes, level = 0) => {
+  return nodes.map(node => {
+    const person = getPerson(node.no)
+
+    const row = $('#nodeTemplate').clone()
+    row.find('.node-header').css('padding-left', (10 * level) + 'px')
+    row.find('[name="person.name"]').html(
+      $('<a>').attr('href', `/persons/${person.no}`)
+        .text(`[${person.no}] ${config.AGE[person.age]}${config.SEX[person.sex]} ${person.area}`)
+    )
+    row.find('[name="person.release_date"]').text(
+      person.release_date.format('YYYY年M月D日')
+    ).append()
+    row.find('[name="person.relationship"]').text(() => {
+      return person.contacts.filter(c => c.relationship)
+        .map(c => {
+          return `[${c.person_no}]の${c.relationship}`
+        }).join(',')
+    })
+    area.append(row)
+
+    if (node.nodes) {
+      addNodeRows(area, node.nodes, level + 1)
+    }
+  })
+}
+
+Promise.resolve().then(() => {
+  $('#loading').removeClass('loading-stop').addClass('loading-start')
+
+  return Promise.all([
+    Person.find(),
+    Person.getTree()
+  ])
+}).then(results => {
+  _persons = results[0].persons
+  const tree = results[1]
+
+  for (const root of tree) {
+    const person = getPerson(root.no)
+    const row = $('#templateRow').clone()
+    row.find('[name="person.name"]').html(
+      $('<a>').attr('href', `/persons/${person.no}`)
+        .text(`[${person.no}] ${config.AGE[person.age]}${config.SEX[person.sex]} ${person.area}`),
+    )
+    row.find('[name="person.release_date"]').text(
+      person.release_date.format('YYYY年M月D日')
+    )
+
+    let text = ''
+    switch(person.reason) {
+      case 'contact':
+        text += `${person.case || '?'}より`
+        break
+      case 'spot':
+        text += `${person.spot || '?'}より`
+        break
+      case 'abroad':
+        text += `海外（${person.route.country || '?'}）より`
+        break
+      case 'other_area':
+        text += `県外（${person.route.area || '?'}）より`
+        break
+      case 'other':
+        text += person.route.text
+        break
+      case 'unknown':
+        text += `感染元不明`
+        break
+      default:
+        text += '?'
+    }
+    row.find('[name="person.reason"]').text(text)
+
+      const nodesArea = row.find('.tree-nodes')
+    nodesArea.html(null)
+    if (root.nodes) {
+      addNodeRows(nodesArea, root.nodes)
+    }
+
+    $('#tree').append(row)
+  }
+
+  return true
+}).then(() => {
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+}).catch(e => {
+  console.log(e)
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+</script>
+
+{% endblock %}

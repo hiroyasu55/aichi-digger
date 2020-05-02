@@ -1,0 +1,329 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<style>
+  th {
+    background-color: lightblue;
+  }
+  .col-label {
+    font-weight: bold;
+  }
+  .col-value {
+    margin-left: 20px;
+  }
+  .refered {
+    color: rgb(4, 4, 37);
+  }
+  .fa {
+    margin-right: 4px;
+  }
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <h2>No.<span name="person.no"></span></h2>
+
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <table class="table table-bordered table-sm">
+          <tbody>
+            <tr>
+              <th scope="col" style="width:20%;">No.</th>
+              <td style="width:80%;"><span name="person.no"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">発表日</th>
+              <td><span name="person.release_date"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">年代・性別</th>
+              <td><span name="person.age"></span> <span name="person.sex"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">居住地</th>
+              <td><span name="person.area"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">国籍</th>
+              <td><span name="person.nationality"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">海外渡航歴</th>
+              <td><span name="person.abroad_history"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">発症日</th>
+              <td><span name="person.onset_date"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">陽性確認日</th>
+              <td><span name="person.confirmed_date"></span> <span name="person.confirmed_interval_days"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">症状</th>
+              <td><span name="person.condition"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">経過</th>
+              <td><div name="person.progress"></div>
+              </td>
+            </tr>
+            <tr>
+              <th scope="col">感染経路</th>
+              <td><span name="person.route"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">接触者</th>
+              <td><span name="person.contacts"></span></td>
+            </tr>
+            <tr>
+              <th scope="col">備考</th>
+              <td><ul name="person.remarks" class="pl-4"></ul></td>
+            </tr>
+            <tr>
+              <th scope="col">発表元</th>
+              <td><div name="person.refer"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <p class="text-right"><a href="/persons">一覧へ</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading image -->
+  <div>
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import * as config from '/static/js/config.js'
+import * as Person from '/static/js/Person.js'
+import * as Detail from '/static/js/Detail.js'
+
+const contactsHtml = (contacts) => {
+  const html = []
+
+  return contacts.reduce((promise, c) => {
+    return promise.then(() => {
+      return Person.findByNo(c.person_no).then(p => {
+        const row =  $('<a>').attr('href', './' + c.person_no)
+        let text = `[${c.person_no}]`
+        if (c.relationship) {
+          const rtext = (r => {
+            if (r == '夫') return '妻'
+            else if (r == '妻') return '夫'
+            else if (r == '娘') return '親'
+            else if (r == '家族') return '家族'
+            return `【${r}】`
+          })(c.relationship)
+          text += `（${rtext}）`
+        }
+        if (p) {
+          text += ` ${config.AGE[p.age]}${config.SEX[p.sex]}`
+        }
+
+        row.text(text)
+        return row
+      })
+    })
+  }, Promise.resolve())
+}
+
+/**
+ * Overwrite by detail
+ */
+const showDetail = detail => {
+  return new Promise(resolve => {
+    if (detail.area)
+      $('[name="person.area"]').addClass('refered').text(detail.area)
+    if (detail.condition)
+      $('[name="person.condition"]').addClass('refered').text(detail.condition)
+
+    if (detail.abroad_history)
+      $('[name="person.abroad_history"]').addClass('refered').text(detail.abroad_history)
+
+    if (moment.isMoment(detail.onset_date)) {
+      $('[name="person.onset_date"]').addClass('refered')
+        .text(detail.onset_date.format('YYYY年M月D日'))
+    }
+
+    if (moment.isMoment(detail.confirmed_date)) {
+      $('[name="person.confirmed_date"]').addClass('refered')
+        .text(detail.confirmed_date.format('YYYY年M月D日'))
+
+      if (moment.isMoment(detail.onset_date)) {
+        const intervalDays = moment.duration(detail.confirmed_date.diff(detail.onset_date)).asDays()
+        $('[name="person.confirmed_interval_days"]').addClass('text-danger')
+          .text(`（発症日より${intervalDays}日後）`)
+      }
+
+    }
+
+    detail.progress.map(p => {
+      $('[name="person.progress"]').addClass('refered').append([
+        `<dt>${p.date.format('YYYY年M月D日')}</dt>`,
+        $('<ul class="pl-4">').html(
+          p.content.split('|').map(c => {
+            return $('<li>').text(c)
+          })
+        )
+      ])
+    })
+
+    detail.remarks = detail.remarks || []
+    $('[name="person.remarks"]').html(
+      detail.remarks.map(remark => $('<li>').addClass('refered').text(remark)))
+
+    if (detail.url || detail.pdf_url) {
+      $('[name="person.refer"]').append(
+        $('<a>').attr({
+          'href': detail.url || detail.pdf_url,
+          'target': '_blank'
+        }).text(
+          `（${moment(detail.release_date).format('YYYY年M月D日')}${detail.patient_name || ''}）`
+        )
+      )
+    }
+
+    return resolve(detail)
+  })
+}
+
+/**
+ * Show Person
+ */
+const showPerson = (person) => {
+  return new Promise(resolve => {
+    $('[name="person.no"]').text(person.no)
+    $('[name="person.release_date"]').text(moment(person.release_date).format('YYYY年M月D日'))
+    $('[name="person.age"]').text(config.AGE[person.age] || person.age + '.')
+    $('[name="person.sex"]').text(config.SEX[person.sex] || person.sex + '.')
+    $('[name="person.area"]').text(person.area == 'unknown' ? '不明' : person.area)
+    $('[name="person.nationality"]').text(person.nationality)
+    $('[name="person.route"]').text(() => {
+      let text = ''
+      switch (person.reason) {
+        case 'contact':
+          text = '濃厚接触'
+          break
+        case 'spot':
+          text = `${person.spot}`
+          break
+        case 'abroad':
+          text = `国外（${person.route.country}）`
+          break
+        case 'other_area':
+          text = `県外（${person.route.area}）`
+          break
+        case 'recurrence':
+          text = `再感染: `
+          break
+        case 'other':
+          text = `その他: ${person.route.text}`
+          break
+        case 'unknown':
+          text = '不明'
+          break
+      }
+      return text
+    })
+    if (person.reason == 'recurrence' && person.former_no) {
+      $('[name="person.route"]').append(
+        $('<a>').attr('href', './' + person.former_no)
+          .text(`[${person.former_no}]`)
+      )
+    }
+
+    $('[name="person.remarks"]').html(
+      person.remarks.map(remark => $('<p>').text(remark))
+    )
+
+    if (person.refer) {
+      $('[name="person.refer"]').text(
+        `${config.GOVERNMENT[person.refer.government] || '?'}発表${person.refer.release_no}`
+      )
+    }
+
+    return resolve(person)
+  }).then(person => {
+    // Contacts
+    if (person.contacts) {
+      return contactsHtml(person.contacts)
+        .then(html => {
+          $('[name="person.contacts"]').html(html)
+          return person
+        })
+    }
+
+    if (person.case) {
+      $('[name="person.contacts"]').text(person.case)
+    }
+
+    return person
+  }).then(person => {
+    if (!person.detail) return person
+
+    return showDetail(person.detail)
+      .then(detail => {
+        return person
+      })
+  })
+
+}
+
+/**
+ * On Load
+ */
+Promise.resolve().then(() => {
+  $('#loading').removeClass('loading-stop').addClass('loading-start')
+
+  const url = location.href
+  const param = url.match(/\/([^\/]+)$/)[1]
+  return Person.findByNo(param)
+}).then(person => {
+  if (!person.refer) return person
+
+  return Detail.findByGovernmentNo(person.refer.government, person.refer.release_no)
+    .then(detail => {
+      if (detail) {
+        person.detail = detail
+      }
+/*
+      if (person.refer.government == 'aichi') {
+        return Aichi.findByNo(person.refer.release_no)
+      } else if (person.refer.government == 'nagoya') {
+        return Nagoya.findByNo(person.refer.release_no)
+      } else {
+        return null
+      }
+*/
+      return person
+    })
+
+}).then(person => {
+  return showPerson(person)
+
+}).then(person => {
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+}).catch(e => {
+  console.log(e)
+  $('#loading').removeClass('loading-start').addClass('loading-stop');
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+</script>
+
+{% endblock %}
