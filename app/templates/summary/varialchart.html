@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+@media (max-width: 768px) {
+  h2 {
+    font-size: 23px;color:
+  }
+}
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <div class="row">
+    <div class="offset-lg-2 col-lg-8 col-12">
+
+      <h2>愛知県COVID-12集計 : 日別</h2>
+
+      <ul class="nav nav-pills justify-content-center my-4">
+        <li class="nav-item">
+          <a class="nav-link" href="/summary">日別集計</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/summary/dailychart">日別グラフ</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="#">各種グラフ</a>
+        </li>
+      </ul>
+
+      <div class="row my-4">
+        <div class="col text-right">
+          <span id='currentDate'></span> 現在
+        </div>
+      </div>
+
+      <div class="row my-2">
+        <div class="col-12">
+          <div id="ageChart" class="age-chart"></div>
+          <div id="reasonChart" class="reason-chart"></div>
+        </div>
+      </div>
+
+      <div class="container mt-4">
+        <div class="row">
+          <div class="offset-sm-3 col-sm-6">
+            <div class="card">
+              <ul class="list-group">
+                <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+                <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+                <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+                <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計</a></li>
+                <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading image -->
+<div id="loading" class="loading"></div>
+
+<div class="display-none">
+</div>
+
+<script type="module">
+import { getQueryString, getJapaneseHolidays, Loader } from '/static/js/util.js'
+import * as config from '/static/js/config.js'
+import * as summary from '/static/js/summary.js'
+moment.locale("ja")
+let jHolidays = {}
+
+google.charts.load('current', {
+  'packages': ['corechart']
+})
+
+/**
+ * Age Chart
+ */
+const drawAgeChart = (result) => {
+  return Promise.resolve()
+    .then(() => {
+      google.charts.setOnLoadCallback(() => {
+        const chart = new google.visualization.PieChart($('#ageChart')[0])
+        const table = new google.visualization.DataTable()
+        const rows = result.rows
+
+        table.addColumn('string', 'age')
+        table.addColumn('number', 'count')
+        table.addRows(
+          Object.keys(config.AGE).map(age => {
+            return [
+              config.AGE[age],
+              (rows.find(r => r.age == age) || {}).count || 0
+            ]
+          })
+        )
+        const options = {
+          title: '年代別',
+          titleTextStyle: {
+            fontSize: 16
+          },
+          width: '100%',
+          height: 500,
+          legend: {
+
+          },
+          colors: [
+            'darkred',
+            'red',
+            'orange',
+            'gold',
+            'greenyellow',
+            'green',
+            'seagreen',
+            'blue',
+            'navy',
+            'indigo',
+            'purple',
+            'pink',
+            'darkgray',
+          ]
+        }
+        chart.draw(table, options)
+      })
+      return true
+    })
+}
+
+/**
+ * Reason Chart
+ */
+const drawReasonChart = (result) => {
+  return Promise.resolve()
+    .then(() => {
+      google.charts.setOnLoadCallback(() => {
+        const chart = new google.visualization.PieChart($('#reasonChart')[0])
+        const table = new google.visualization.DataTable()
+        const rows = result.rows
+
+        table.addColumn('string', '感染経路')
+        table.addColumn('number', 'count')
+        table.addRows(
+          Object.keys(config.REASON).map(reason => {
+            return [
+              config.REASON[reason],
+              (rows.find(r => r.reason == reason) || {}).count || 0
+            ]
+          })
+        )
+        const options = {
+          title: '感染経路別',
+          titleTextStyle: {
+            fontSize: 16
+          },
+          width: '100%',
+          height: 500,
+          legend: {
+
+          },
+          colors: Object.values(config.REASON_COLORS)
+        }
+        chart.draw(table, options)
+      })
+      return true
+    })
+}
+
+
+const loader = new Loader($('#loading'))
+
+Promise.resolve().then(() => {
+  loader.start()
+  return Promise.all([
+    summary.getCount('age'),
+    summary.getCount('reason')
+  ])
+}).then(([resultAge, resultReason]) => {
+  const currentDate = moment(resultAge.current_date)
+  $('#currentDate').text(currentDate.format('YYYY年M月D日'))
+
+  return Promise.all([
+    drawAgeChart(resultAge),
+    drawReasonChart(resultReason)
+  ])
+
+}).then(result => {
+  loader.stop()
+}).catch(e => {
+  loader.stop()
+  console.log(e)
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+
+</script>
+{% endblock %}

@@ -1,20 +1,10 @@
 import * as config from '/static/js/config.js'
 
-const revideDetail = (detail => {
-  detail.onset_date = detail.onset_date || ''
-  if (detail.onset_date != '') {
-    detail.onset_date = moment(detail.onset_date)
-  }
+const reviseDetail = (detail => {
 
-  detail.hospitalization_date = detail.hospitalization_date || ''
-  if (detail.hospitalization_date != '') {
-    detail.hospitalization_date = moment(detail.onset_date)
-  }
-
-  detail.confirmed_date = detail.confirmed_date || ''
-  if (detail.confirmed_date != '') {
-    detail.confirmed_date = moment(detail.confirmed_date)
-  }
+  Object.keys(detail).filter(k => k.match(/_date$/)).map(k => {
+    detail[k] = detail[k] && detail[k] != 'unknown' ? moment(detail[k]) : ''
+  })
 
   detail.progress = detail.progress || []
   detail.progress = detail.progress.map(p => {
@@ -35,7 +25,7 @@ export function find(condition = {}, offset = 0, limit = 0) {
     console.log('url:' + url)
     $.getJSON(url)
       .done(result => {
-        result.details.map(detail => revideDetail(detail))
+        result.details.map(detail => reviseDetail(detail))
         resolve(result)
       })
       .fail((jqXHR, textStatus, errorThrown) => {
@@ -75,7 +65,7 @@ export function findByGovernmentNo(government, no) {
           console.log(`Detail [${government},${no}] not found.`)
           return resolve(null)
         }
-        const detail = revideDetail(result.detail)
+        const detail = reviseDetail(result.detail)
         resolve(detail)
       })
       .fail((jqXHR, textStatus, errorThrown) => {

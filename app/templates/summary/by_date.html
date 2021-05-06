@@ -1,0 +1,171 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<style>
+  .day-header {
+    width: 100%;
+    padding: 4px;
+    text-align: center;
+    color: white;
+    background-color: rgb(5, 33, 109);
+    border: darkgray 1px solid;
+  }
+  .day-box {
+    width: 100%;
+    border: darkgray 1px solid;
+  }
+  .day-today {
+    background-color: rgb(255, 170, 170);
+    font-weight: bold;
+  }
+  .day-text {
+    font-size: small;
+  }
+  .month-12 {
+    background-color: rgb(199, 199, 199);
+  }
+  .month-1 {
+    background-color: rgb(244, 245, 226);
+  }
+  .month-2 {
+    background-color: rgb(233, 246, 252);
+  }
+  .month-3 {
+    background-color: rgb(255, 247, 234);
+  }
+  .month-4 {
+    background-color: rgb(255, 212, 212);
+  }
+  .month-5 {
+    background-color: rgb(214, 245, 205);
+  }
+  .month-6 {
+    background-color: rgb(238, 248, 201);
+  }
+</style>
+
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <h3>愛知県COVID-12集計</h3>
+
+  <div class="container py-4">
+    <p>総感染者数（<span id="currentDate"></span>現在）:
+    <span style="font-size: x-large; color: red" id="total"></span>件</p>
+  </div>
+
+  <h4>日別件数</h4>
+  <div class="container py-2">
+    <div class="row mb-2">
+      <div class="col-sm-8 col">
+        <div id="calendar">
+          <div class="d-flex flex-row justify-content-between">
+            <div class="day-header">日</div>
+            <div class="day-header">月</div>
+            <div class="day-header">火</div>
+            <div class="day-header">水</div>
+            <div class="day-header">木</div>
+            <div class="day-header">金</div>
+            <div class="day-header">土</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mt-4">
+    <ul>
+      <li><a href="/persons">リスト</a></li>
+      <li><a href="/tree">ツリー</a></li>
+      <li><a href="/contact">お問い合わせ</a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Loading image -->
+<div id="loading" class="loading"></div>
+
+<div class="display-none">
+  <!-- Calendar Template -->
+  <div id="weekRowTemplate" class="d-flex flex-row justify-content-between">
+  </div>
+
+  <div id="dayTemplate" class="day-box">
+    <span name="day" class="day-text"></span>
+    <p name="count" class="text-center"></p>
+  </div>
+
+</div>
+
+<script type="module">
+import { getQueryString, Loader } from '/static/js/util.js'
+import * as config from '/static/js/config.js'
+import * as summary from '/static/js/summary.js'
+
+const loader = new Loader($('#loading'))
+
+Promise.resolve().then(() => {
+  loader.start()
+
+  return summary.getCount('release_date')
+}).then(result => {
+  const rows = result.rows
+  const currendDate = moment(result.current_date)
+  $('#currentDate').text(currendDate.format('YYYY年M月D日'))
+  $('#total').text(result.total)
+
+  let date = moment('2019-12-29')
+  let month = null
+  let valid = false
+  const today = moment()
+  while (date.isBefore(today)) {
+    const weekRow = $('#weekRowTemplate').clone()
+    weekRow.html([...Array(7).keys()].map(w => {
+      const dayBox = $('#dayTemplate').clone()
+      dayBox.addClass(`month-${date.month() + 1}`)
+      if (date.isSame(today)) {
+        dayBox.addClass('day-today')
+      }
+      if (date.month() != month) {
+        dayBox.find('[name="day"]').text(date.format('M/D'))
+        month = date.month()
+      } else {
+        dayBox.find('[name="day"]').text(date.format('D'))
+      }
+
+      const rs= rows.find(r => moment(r.release_date).isSame(date))
+      let count = r > 0 ? r.count : 0
+      if (count > 0) {
+        const dateStr = date.format('YYYY-MM-DD')
+        dayBox.find('[name="count"]')
+          .html($('<a>')
+          .attr('href', getQueryString('/persons', {from_date: dateStr, to_date: dateStr}))
+          .text(count))
+        valid = true
+      } else {
+        dayBox.find('[name="count"]').text(
+          date.isSameOrBefore(currendDate) ? (valid ? count : '-') : ''
+        )
+      }
+
+      date.add('day', 1)
+      return dayBox
+    }))
+    $('#calendar').append(weekRow)
+
+  }
+
+  return true
+}).then(result => {
+  loader.stop()
+}).catch(e => {
+  loader.stop()
+  console.log(e)
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+
+</script>
+{% endblock %}

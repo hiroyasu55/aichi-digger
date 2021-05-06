@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<style>
+  .tree {
+    border: darkgray 1px solid;
+    font-size: small;
+  }
+  .header-row {
+    padding: 0.5rem;
+    background-color: #cdebff;
+  }
+  .root-row {
+    font-weight: bold;
+  }
+  .tree-body {
+    padding: 0.5rem;
+    font-size: small;
+  }
+  .node-row {
+    border-bottom: darkgray 1px solid;
+  }
+  .footer-row {
+    background-color: white;
+    padding: 0.5rem;
+    font-size: small;
+  }
+
+  @media (max-width: 768px) {
+    h2 {
+      font-size: 23px;
+    }
+    .table-detail {
+      font-size: small;
+    }
+    .tree-body {
+      font-size: x-small;
+    }
+    .sm-hidden {
+      display: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sm-align-right {
+      text-align: right;
+    }
+  }
+
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <h2>愛知県クラスター情報</h2>
+
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col clusters" id="clusters">
+      </div>
+    </div>
+  </div>
+
+  <div class="container mt-4">
+    <div class="row">
+      <div class="offset-sm-3 col-sm-6">
+        <div class="card">
+          <ul class="list-group">
+            <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+            <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+            <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+            <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計</a></li>
+            <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading image -->
+  <div id="loading" class="loading"></div>
+
+  <div class="display-none">
+
+    <!-- Cluster Template -->
+    <div id="clusterTmpl" class="card mb-2">
+      <div class="card-header header-row" name="cluster.header">
+      </div>
+      <div class="card-body tree-body" name="cluster.trees">
+      </div>
+      <div class="card-footer footer-row" name="cluster.footer">
+        <div class="row">
+          <div class="col">参照：</div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <ul name="cluster.links">
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script type="module">
+import * as config from '/static/js/config.js'
+import * as Person from '/static/js/Person.js'
+import * as Cluster from '/static/js/Cluster.js'
+import { Loader } from '/static/js/util.js'
+
+const addNodeRows = (area, nodes) => {
+  return nodes.map(node => {
+    const row = $('#nodeTmpl').clone()
+
+    area.append(row)
+    if (node.nodes) {
+      addNodeRows(area, node.nodes)
+    }
+  })
+}
+
+const _addNode = (node) => {
+  if (!node.nodes) return []
+  const rows = []
+  node.nodes.map(n => {
+    const div = $('<div class="d-flex flex-wrap">')
+    div.html([
+      (n.current ? $('<span>') : $('<a>').attr('href', `/persons/${n.no}`))
+        .text(`[${n.no}]${config.AGE[n.age]}${config.SEX[n.sex]} ${n.area}`),
+      $('<span class="px-1">').text(moment(n.release_date).format('M/D'))
+    ])
+    const block = $('<div class="d-none d-sm-block pr-1">')
+    if (n.reason == 'abroad') {
+      block.append($('<span class="pr-1">').text(n.route.country))
+    }
+    const c = n.contacts[0]
+    if (c.relationship) {
+      block.append($('<span class="pr-1">').text(c.relationship))
+    }
+    if (c.place) {
+      block.append($('<span class="pr-1">').text(c.place))
+    }
+    div.append(block)
+
+    const col = $('<div class="col d-flex flex-row">')
+    col.html($('<span class="pr-1">').text('-').css('padding-left', (n.level * 0.5) + 'rem'))
+      .append(div)
+    rows.push($('<div class="row py-1">').append(col))
+    _addNode(n).map(n => rows.push(n))
+  })
+
+  return rows
+}
+
+/**
+ * Show Cluster
+ */
+const showCluster = (cluster, trees) => {
+  const clusterArea = $('#clusterTmpl').clone()
+  const headerArea = clusterArea.find('[name="cluster.header"]')
+  const treesArea = clusterArea.find('[name="cluster.trees"]')
+  const footerArea = clusterArea.find('[name="cluster.footer"]')
+
+  return Promise.resolve()
+    .then(() => {
+      const clusterTrees = trees.filter(tree => tree.root.cluster_no == cluster.no)
+      const total = clusterTrees.reduce((count, tree) => count + tree.total + 1, 0)
+
+      headerArea.html([
+        $('<span class="font-weight-bold pr-1">').html(
+          $('<a>').attr('href', `/persons?cluster_no=${cluster.no}`)
+            .text(`${cluster.name} : ${cluster.description}`)
+        ),
+        $('<span class="pr-1">').text(cluster.start_date.format('YYYY年M月D日〜')),
+        $('<span class="pr-1">').text(`${total}件`),
+      ])
+
+      clusterTrees.map(tree => {
+        const root = tree.root
+        const col = $('<div class="col d-flex flex-wrap font-weight-bold">')
+        col.html([
+          $('<span class="pr-1">').text('■'),
+          $('<a>').attr('href', `/persons/${root.no}`)
+            .text(`[${root.no}]${config.AGE[root.age]}${config.SEX[root.sex]} ${root.area}`),
+          $('<span class="pr-1">').text(moment(root.release_date).format('M/D')),
+          $('<span class="pr-1">').text(
+            root.reason == 'abroad' ? root.route.country
+              : root.reason == 'other_area' ? root.route.area
+              : root.reason == 'unknown' ? '感染元不明'
+              : '?'
+          ),
+          $('<span class="pr-1">').text(root.spot ? `${root.spot}` : ''),
+          $('<span class="pr-1">').text(`(${tree.total})`),
+        ])
+        treesArea.append($('<div class="row py-1">').html(col))
+        treesArea.append(_addNode(tree))
+
+        $('#clusters').append(clusterArea)
+
+      })
+
+      footerArea.find('[name="cluster.links"]').empty()
+      if (cluster.links) {
+        footerArea.find('[name="cluster.links"]').html(
+          cluster.links.map(link => {
+            return $('<li>').html($('<a>').attr({
+              'href': link.url,
+              'target': '_blank'
+            }).text(link.title))
+          })
+        )
+      }
+
+      return true
+    })
+}
+
+/**
+ * On Load
+ */
+const loader = new Loader($('#loading'))
+
+Promise.resolve().then(() => {
+  loader.start()
+
+  return Promise.all([
+    Person.getTree(),
+    Cluster.find()
+  ])
+}).then(([trees, clusters]) => {
+  const promises = clusters.map(cluster => showCluster(cluster, trees))
+  return Promise.all(promises)
+}).then(() => {
+  loader.stop()
+}).catch(e => {
+  loader.stop()
+  console.log(e)
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+</script>
+
+{% endblock %}

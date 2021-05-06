@@ -3,7 +3,8 @@ import os
 from app.controllers.home import app_home
 from app.controllers.persons import app_persons
 from app.controllers.tree import app_tree
-from app.controllers.summary import app_summary
+import app.controllers.clusters as clusters
+import app.controllers.summary as summary
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -15,4 +16,5 @@ app.secret_key = os.urandom(12)
 app.register_blueprint(app_home)
 app.register_blueprint(app_persons)
 app.register_blueprint(app_tree)
-app.register_blueprint(app_summary)
+app.register_blueprint(summary.app)
+app.register_blueprint(clusters.app)

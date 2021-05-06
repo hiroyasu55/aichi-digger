@@ -11,7 +11,7 @@ def date_to_japanese(dt):
     return dt.strftime(r'%Y年%m月%d日')
 
 
-@app_persons.route('')
+@app_persons.route('/')
 def index():
     page = request.args.get('page', None)
 

@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+.list-table {
+  font-size: small;
+}
+.list-header {
+  background-color: rgb(197, 235, 247);
+}
+.list-total {
+  border-top: darkgray 2px solid;
+  font-weight: bold;
+}
+.col-date {
+  background-color: rgb(214, 255, 233);
+}
+.col-total {
+  background-color: rgb(247, 246, 197);
+}
+.col-rate {
+  background-color: rgb(247, 220, 197);
+}
+
+@media (max-width: 768px) {
+  h2 {
+    font-size: 23px;
+  }
+  .list-table {
+    font-size: x-small;
+  }
+}
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <div class="row">
+    <div class="offset-lg-2 col-lg-8 col-12">
+
+      <h2>愛知県COVID-12：集計</h2>
+
+      <ul class="nav nav-pills justify-content-center my-4">
+        <li class="nav-item">
+          <a class="nav-link active" href="#">日別集計</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/summary/dailychart">日別グラフ</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/summary/varialchart">各種グラフ</a>
+        </li>
+      </ul>
+
+      <div class="row my-4">
+        <div class="col text-right">
+          <span id='currentDate'></span> 現在
+        </div>
+      </div>
+
+      <div class="row my-2">
+        <div class="col-12">
+          <table class="table table-sm table-bordered list-table">
+            <thead>
+              <tr class="list-header">
+                <th scope="col" rowspan="2" style="width: 20%;">発表日</th>
+                <th scope="col" colspan="5">感染元</th>
+                <th scope="col" rowspan="2" style="width: 10%;">計</th>
+                <th scope="col" rowspan="2" style="width: 10%;">不明者率（累計）</th>
+              </tr>
+              <tr class="list-header">
+                <th scope="col" style="width: 10%;">接触</th>
+                <th scope="col" style="width: 10%;">国外</th>
+                <th scope="col" style="width: 10%;">県外</th>
+                <th scope="col" style="width: 10%;">再感染</th>
+                <th scope="col" style="width: 10%;">不明</th>
+              </tr>
+            </thead>
+            <tbody id="listBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="container mt-4">
+        <div class="row">
+          <div class="offset-sm-3 col-sm-6">
+            <div class="card">
+              <ul class="list-group">
+                <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+                <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+                <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+                <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計</a></li>
+                <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading image -->
+<div id="loading" class="loading"></div>
+
+<div class="display-none">
+
+  <!-- List Row Template -->
+  <table>
+    <tbody>
+      <tr id="listTemplateRow">
+        <td class="col-date"><span name="release_date"></span></td>
+        <td class="text-right"><span name="contact"></span></td>
+        <td class="text-right"><span name="abroad"></span></td>
+        <td class="text-right"><span name="other_area"></span></td>
+        <td class="text-right"><span name="recurrence"></span></td>
+        <td class="text-right"><span name="unknown"></span></td>
+        <td class="text-right col-total"><span name="total"></span></td>
+        <td class="text-right col-rate"><span name="unknown_rate"></span></td>
+      </tr>
+
+      <tr id="totalTemplateRow" class="list-total">
+        <td class="col-date">計</td>
+        <td class="text-right"><span name="contact"></span></td>
+        <td class="text-right"><span name="abroad"></span></td>
+        <td class="text-right"><span name="other_area"></span></td>
+        <td class="text-right"><span name="recurrence"></span></td>
+        <td class="text-right"><span name="unknown"></span></td>
+        <td class="text-right col-total"><span name="total"></span></td>
+        <td class="text-right col-rate"><span name="unknown_rate"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script type="module">
+import { getQueryString, getJapaneseHolidays, Loader } from '/static/js/util.js'
+import * as config from '/static/js/config.js'
+import * as summary from '/static/js/summary.js'
+moment.locale("ja")
+const REASONS = ['contact', 'abroad', 'other_area', 'recurrence', 'unknown']
+let jHolidays = {}
+
+const isHoliday = date => {
+  return jHolidays[date.format('YYYY-MM-DD')]
+}
+
+const loader = new Loader($('#loading'))
+
+Promise.resolve().then(() => {
+  loader.start()
+  return getJapaneseHolidays()
+}).then(result => {
+  jHolidays = result
+
+  return summary.getCross('release_date', 'reason')
+}).then(result => {
+  if (!result) throw new Error('Internal error')
+
+  let date = moment('2020-01-26')
+  const currentDate = moment(result.current_date)
+  $('#currentDate').text(currentDate.format('YYYY年M月D日'))
+
+  let total_sum = 0
+  let unknown_sum = 0
+  while (date.isSameOrBefore(currentDate)) {
+    const tmpl = $('#listTemplateRow').clone()
+    tmpl.find('[name="release_date"]')
+      .text(date.format('M月D日(dd)'))
+      .css('color', date.day() == 0 || isHoliday(date) ? 'red' : 'black')
+    const row = result.rows.find(r => moment(r.release_date).isSame(date)) || {}
+    const values = row.values || []
+    REASONS.map(reason => {
+      const count = (values.find(v => v.name == reason) || {}).count || 0
+      const col = tmpl.find(`[name="${reason}"]`)
+      col.html(() => {
+        if (count > 0) {
+          return $('<a>')
+            .attr('href', getQueryString('/persons', {'release_date': date.format('YYYY-MM-DD'), 'reason': reason}))
+            .text((values.find(v => v.name == reason) || {}).count || '')
+        } else {
+          return ''
+        }
+      })
+    })
+    tmpl.find('[name="total"]').html(() => {
+      if (row.total > 0) {
+        return $('<a>')
+          .attr('href', getQueryString('/persons', {'release_date': date.format('YYYY-MM-DD')}))
+          .text(row.total)
+      } else {
+        return 0
+      }
+    })
+    unknown_sum = unknown_sum + ((values.find(v => v.name == 'unknown') || {}).count || 0)
+    total_sum = total_sum + (row.total || 0)
+    tmpl.find('[name="unknown_rate"]').text(
+      total_sum > 0 ? (unknown_sum / total_sum * 100).toFixed(1) + '%' : '-'
+    )
+
+    $('#listBody').append(tmpl)
+
+    date.add('day', 1)
+  }
+
+  const col_total = result.col_total
+  const totalTmpl = $('#totalTemplateRow').clone()
+  totalTmpl.find('[name="contact"]').text(
+    (col_total.find(v => v.name == 'contact') || {}).count || 0
+  )
+  totalTmpl.find('[name="abroad"]').text(
+    (col_total.find(v => v.name == 'abroad') || {}).count || 0
+  )
+  totalTmpl.find('[name="other_area"]').text(
+    (col_total.find(v => v.name == 'other_area') || {}).count || 0
+  )
+  totalTmpl.find('[name="recurrence"]').text(
+    (col_total.find(v => v.name == 'recurrence') || {}).count || 0
+  )
+  const unknown_total = (col_total.find(v => v.name == 'unknown') || {}).count || 0
+  totalTmpl.find('[name="unknown"]').text(unknown_total)
+  const total = result.total || 0
+  totalTmpl.find('[name="total"]').text(total)
+  const unknown_rate_total = total ? unknown_total / total : null
+  totalTmpl.find('[name="unknown_rate"]').text(
+    total ? (unknown_rate_total * 100).toFixed(1) + '%' : '-'
+  )
+  $('#listBody').append(totalTmpl)
+
+  return true
+}).then(result => {
+  loader.stop()
+}).catch(e => {
+  loader.stop()
+  console.log(e)
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+
+</script>
+{% endblock %}

@@ -1,40 +1,45 @@
 {% extends "layout.html" %}
 
 {% block header_append %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/js/tempusdominus-bootstrap-4.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/css/tempusdominus-bootstrap-4.min.css" />
 <style>
-.clickable {
-  cursor: pointer;
+.fa-calendar {
+  width: 50%;
 }
-.sex-male {
-  color: darkblue;
+.list-header {
+  background-color: #250a50;
+  color: white;
 }
-.sex-female {
-  color: darkmagenta;
+.border-bottom {
+  border-bottom: darkgray 1px dotted;
 }
-.fa {
-  margin-right: 4px;
+
+.text-other-area {
+  font-weight: normal;
+  color: #008000;
 }
-.row-spot {
-  background-color: #ffbb8e;
+.text-cluster {
+  font-weight: bold;
+  color: #000080;
 }
-.row-abroad {
-  background-color: #b5d5ff;
-}
-.row-other-area {
-  background-color: #93fcc8;
-}
-.row-recurrence {
-  background-color: #fd6b46;
-}
-.row-unknown {
-  background-color: #ffff80;
-}
-.row-dead {
-  background-color: #4e4645 !important;
-  color: #ffffff;
+.text-spot {
+  font-weight: normal;
 }
 
 @media (max-width: 768px) {
+  h2 {
+    font-size: 23px;
+  }
+  .search-box {
+    font-size: small;
+  }
+  .list-table {
+    font-size: x-small;
+  }
+  .list-pagenation {
+    font-size: small;
+  }
   .sm-hidden {
     display: none;
   }
@@ -45,59 +50,269 @@
 {% include "header.html" %}
 
 {% block content %}
-<div class="container body-content py-3">
-  <h2>愛知県COVID-12陽性者リスト</h2>
-
-  <div class="container">
-    <div class="row">
-      <div class="col">
-        <p class="text-right"><span id='currentDate'></span> 現在</p>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col">
-        <p class="text-left">
-          <span id='pageFirstNo'></span> - <span id='pageLastNo'></span> / <span id='pageTotal'></span>
-        </p>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col">
-        <table id="personsList" class="table table-bordered table-sm list-table">
-          <thead>
-            <tr class="table-info">
-              <th scope="col">No</th>
-              <th scope="col">発表日</th>
-              <th scope="col">年代 性別 居住地</th>
-              <th scope="col" class="sm-hidden">感染経路</th>
-            </tr>
-          </thead>
-          <tbody id="listBody">
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+<div class="container-lg body-content py-3">
 
   <div class="row">
-    <div class="col">
-      <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center" id="pagenation">
-        </ul>
-      </nav>
+    <div class="offset-xl-1 col-xl-10 col-12">
+      <h2>愛知県COVID-12陽性者リスト</h2>
+
+      <div class="row py-2">
+        <div class="col">
+          <p class="text-right"><span id='currentDate'></span> 現在</p>
+        </div>
+      </div>
+
+      <div class="container py-2">
+        <div id="searchBox" class="card search-box">
+
+          <div class="card-header p-0" id="searchHeader">
+            <button class="btn btn-block collapsed text-left" data-toggle="collapse" data-target="#searchBody" aria-expanded="true" aria-controls="searchHeader">
+              <i id="searchBtnArrow" class="fa fa-caret-right p-2"></i>絞り込み条件
+            </button>
+          </div>
+
+          <div id="searchBody" class="collapse" aria-labelledby="searchHeader" data-parent="#searchBox">
+            <div class="card-body">
+
+              <!-- 発表日 -->
+              <div class="row pb-2 border-bottom">
+                <label class="col-form-label col-sm-2 col-3">発表日</label>
+                <div class="col-sm-10 col-9">
+                  <div class="d-sm-flex flex-sm-row">
+                    <div class="input-group date" id="fromDatePicker" data-target-input="nearest">
+                      <input id="fromDate" type="text" class="form-control datetimepicker-input" data-target="#fromDatePicker"/>
+                      <div class="input-group-append" data-target="#fromDatePicker" data-toggle="datetimepicker">
+                        <div class="input-group-text icon-wrapper"><i class="fa fa-calendar"></i></div>
+                      </div>
+                    </div>
+                    <div class="px-sm-4 px-2 py-2">〜</div>
+                    <div class="input-group date" id="toDatePicker" data-target-input="nearest">
+                      <input id="toDate" type="text" class="form-control datetimepicker-input" data-target="#toDatePicker"/>
+                      <div class="input-group-append" data-target="#toDatePicker" data-toggle="datetimepicker">
+                        <div class="input-group-text icon-wrapper"><i class="fa fa-calendar"></i></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 年代 -->
+              <div class="row py-2 border-bottom">
+                <label class="col-form-label col-sm-2 col-3">年代</label>
+                <div class="col-sm-10 col-9">
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input id="age_none" name="age" type="radio" class="form-check-input" value="none" checked='checked'>
+                      <label class="form-check-label pr-4" for="age_none">指定しない</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_0s" name="age" type="radio" class="form-check-input" value="0s">
+                      <label class="form-check-label pr-4" for="age_0s">0歳</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_10u" name="age" type="radio" class="form-check-input" value="10u">
+                      <label class="form-check-label pr-4" for="age_10u">10歳未満</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_10s" name="age" type="radio" class="form-check-input" value="10s">
+                      <label class="form-check-label pr-4" for="age_10s">10代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_20s" name="age" type="radio" class="form-check-input" value="20s">
+                      <label class="form-check-label pr-4" for="age_20s">20代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_30s" name="age" type="radio" class="form-check-input" value="30s">
+                      <label class="form-check-label pr-4" for="age_30s">30代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_40s" name="age" type="radio" class="form-check-input" value="40s">
+                      <label class="form-check-label pr-4" for="age_40s">40代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_50s" name="age" type="radio" class="form-check-input" value="50s">
+                      <label class="form-check-label pr-4" for="age_50s">50代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_60s" name="age" type="radio" class="form-check-input" value="60s">
+                      <label class="form-check-label pr-4" for="age_60s">60代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_70s" name="age" type="radio" class="form-check-input" value="70s">
+                      <label class="form-check-label pr-4" for="age_70s">70代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_80s" name="age" type="radio" class="form-check-input" value="80s">
+                      <label class="form-check-label pr-4" for="age_80s">80代</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="age_90s" name="age" type="radio" class="form-check-input" value="90s">
+                      <label class="form-check-label pr-4" for="age_90s">90代</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 性別 -->
+              <div class="row py-2 border-bottom">
+                <label class="col-form-label col-sm-2 col-3">性別</label>
+                <div class="col-sm-10 col-9">
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input id="sex_none" name="sex" type="radio" class="form-check-input" value="none" checked="checked">
+                      <label class="form-check-label pr-4" for="sex_none">指定しない</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="sex_male" name="sex" type="radio" class="form-check-input" value="male">
+                      <label class="form-check-label pr-4" for="sex_male">男性</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="sex_female" name="sex" type="radio" class="form-check-input" value="female">
+                      <label class="form-check-label pr-4" for="sex_female">女性</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 居住地 -->
+              <div class="row py-2 border-bottom">
+                <label for="area" class="col-form-label col-sm-2 col-3">居住地</label>
+                <div class="col-sm-5 col-9">
+                  <input id="area" class="form-control" type="text" name="area">
+                </div>
+              </div>
+
+              <!-- 感染経路 -->
+              <div class="row py-2 border-bottom">
+                <label class="col-form-label col-sm-2 col-3">感染経路</label>
+                <div class="col-sm-10 col-9">
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input id="reason_none" name="reason" type="radio" class="form-check-input" value="none" checked='checked'>
+                      <label class="form-check-label pr-4" for="reason_none">指定しない</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="reason_contact" name="reason" type="radio" class="form-check-input" value="contact">
+                      <label class="form-check-label pr-4" for="reason_contact">接触</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="reason_abroad" name="reason" type="radio" class="form-check-input" value="abroad">
+                      <label class="form-check-label pr-4" for="reason_abroad">海外</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="reason_other_area" name="reason" type="radio" class="form-check-input" value="other_area">
+                      <label class="form-check-label pr-4" for="reason_other_area">県外</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="reason_recurrence" name="reason" type="radio" class="form-check-input" value="recurrence">
+                      <label class="form-check-label pr-4" for="reason_recurrence">再感染</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="reason_unknown" name="reason" type="radio" class="form-check-input" value="unknown">
+                      <label class="form-check-label pr-4" for="reason_unknown">不明</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 状態 -->
+              <div class="row py-2 border-bottom">
+                <label class="col-form-label col-sm-2 col-3">状態</label>
+                <div class="col-sm-10 col-9">
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input id="status_none" name="status" type="radio" class="form-check-input" value="none" checked='checked'>
+                      <label class="form-check-label pr-4" for="status_none">指定しない</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="status_discharged" name="status" type="radio" class="form-check-input" value="discharged">
+                      <label class="form-check-label pr-4" for="status_discharged">退院</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input id="status_dead" name="status" type="radio" class="form-check-input" value="dead">
+                      <label class="form-check-label pr-4" for="status_dead">死亡</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- クラスター -->
+              <div class="row py-2 border-bottom">
+                <label for="clustersSelect" class="col-form-label col-sm-3 col-3">クラスター</label>
+                <div class="col-sm-9 col-9">
+                  <select id="clustersSelect" name="cluster_no" class="form-control">
+                    <option value="none" selected>-</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end py-2">
+                <button id="searchClearBtn" class="btn btn-sm btn-secondary">条件クリア</button>
+                <button id="searchBtn" type="submit" class="btn btn-sm btn-primary ml-2">絞り込み</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row pt-4">
+        <div class="col">
+          <p class="text-left">
+            <span id='pageFirstNo'></span> - <span id='pageLastNo'></span> / <span id='pageTotal'></span>
+          </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <table id="personsList" class="table table-bordered table-sm list-table">
+            <thead>
+              <tr class="list-header">
+                <th scope="col" style="width: 10%;">No</th>
+                <th scope="col" style="width: 15%;">発表日</th>
+                <th scope="col" style="width: 20%;">年代 性別 居住地</th>
+                <th scope="col" style="width: 10%;">状態</th>
+                <th scope="col" style="width: 35%;">感染経路</th>
+              </tr>
+            </thead>
+            <tbody id="listBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col list-pagenation">
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagenation">
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <div class="container mt-4">
+        <div class="row">
+          <div class="offset-sm-3 col-sm-6">
+            <div class="card">
+              <ul class="list-group">
+                <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+                <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+                <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+                <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計</a></li>
+                <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
 </div>
 
 <!-- Loading image -->
-<div>
-  <div id="loading" class="loading">
-    <div class="loading-spinner"></div>
-  </div>
-</div>
+<div id="loading" class="loading"></div>
 
 <div class="display-none">
 
@@ -105,10 +320,15 @@
   <table>
     <tbody>
       <tr id="listTemplateRow" class="list-row">
-        <th scope="row" name="person.no"></th>
-        <td name="person.release_date"></td>
-        <td name="person.agesexarea"></td>
-        <td name="person.reason" class="sm-hidden"></td>
+        <th scope="row"><div name="person.no"></div></th>
+        <td><span name="person.release_date"></span></td>
+        <td>
+          <div class="d-flex flex-wrap">
+            <span name="person.agesexarea" class="pr-1"></span>
+          </div>
+        </td>
+        <td><span name="person.status"></span></td>
+        <td><div class="d-flex flex-wrap" name="person.reason"></div></td>
       </tr>
     </tbody>
   </table>
@@ -117,10 +337,152 @@
 
 <script type="module">
 import * as config from '/static/js/config.js'
-import { getQueryParams } from '/static/js/utility.js'
+import { getQueryParams, getQueryString, Loader } from '/static/js/util.js'
 import * as Person from '/static/js/Person.js'
+import * as Cluster from '/static/js/Cluster.js'
+moment.locale('ja')
 
 const queryParams = getQueryParams()
+let _clusters = []
+
+// Search parameters
+const searchParam = {}
+const searchKeys = [
+  'release_date', 'from_date', 'to_date', 'age', 'sex', 'area', 'reason', 'status', 'cluster_no'
+]
+if (queryParams.cluster_no) queryParams.cluster_no = parseInt(queryParams.cluster_no)
+Object.keys(queryParams)
+  .filter(key => searchKeys.indexOf(key) >= 0)
+  .map(key => searchParam[key] = queryParams[key])
+
+// Search Box
+const initSearchBox = () => {
+
+  $('#fromDatePicker').datetimepicker({
+    dayViewHeaderFormat: 'YYYY年M月',
+    defaultDate: searchParam.from_date ? moment(searchParam.from_date) : searchParam.release_date ? moment(searchParam.release_date) : null,
+    format: 'YYYY-MM-DD',
+    locale: 'ja',
+    minDate: moment('2020-01-01'),
+  })
+  $('#toDatePicker').datetimepicker({
+    dayViewHeaderFormat: 'YYYY年M月',
+    defaultDate: searchParam.to_date ? moment(searchParam.to_date) : searchParam.release_date ? moment(searchParam.release_date) : null,
+    format: 'YYYY-MM-DD',
+    locale: 'ja',
+    minDate: moment('2020-01-01'),
+  })
+  $('#clearDateBtn').on('click', e => {
+    $('#fromDatePicker').datetimepicker('date', null)
+    $('#toDatePicker').datetimepicker('date', null)
+  })
+
+  if (searchParam.age) {
+    $(`input[name="age"][value="${searchParam.age}"]`).prop('checked', true)
+  }
+  if (searchParam.sex) {
+    $(`input[name="sex"][value="${searchParam.sex}"]`).prop('checked', true)
+  }
+  if (searchParam.area) {
+    $('input[name="area"]').val(searchParam.area)
+  }
+  if (searchParam.status) {
+    $(`input[name="status"][value="${searchParam.status}"]`).prop('checked', true)
+  }
+  if (searchParam.reason) {
+    $(`input[name="reason"][value="${searchParam.reason}"]`).prop('checked', true)
+  }
+
+  $('select[name="cluster_no"]').append(_clusters.map(cluster => {
+    const option = $('<option>').val(cluster.no).text(`【${cluster.name}】${cluster.description}`)
+    if (cluster.no == searchParam.cluster_no) {
+      option.prop('selected', true)
+    }
+    return option
+  }))
+
+  // Clear Button
+  $('#searchClearBtn').on('click', e => {
+    $('#fromDatePicker').datetimepicker('date', null)
+    $('#toDatePicker').datetimepicker('date', null)
+    $('input[name="age"][value="none"]').prop('checked', true)
+    $('input[name="sex"][value="none"]').prop('checked', true)
+    $('input[name="area"]').val(null)
+    $('select[name="status"]').val('none')
+    $('input[name="reason"][value="none"]').prop('checked', true)
+    $('select[name="cluster_no"]').val('none')
+  })
+
+  // Search Button
+  $('#searchBtn').on('click', e => {
+    const param = {}
+
+    const fromDate = $('#fromDatePicker').datetimepicker('date')
+    if (fromDate) {
+      if (!moment.isMoment(fromDate)) {
+        alert('開始日が正しくありません。')
+        return false
+      }
+      param.from_date = fromDate.format('YYYY-MM-DD')
+    }
+    const toDate = $('#toDatePicker').datetimepicker('date')
+    if (toDate) {
+      if (!moment.isMoment(toDate)) {
+        alert('終了日が正しくありません。')
+        return false
+      }
+      if (fromDate && toDate && fromDate.isAfter(toDate)) {
+        alert('開始〜終了期間が正しくありません。')
+        return false
+      }
+      param.to_date = toDate.format('YYYY-MM-DD')
+    }
+
+    const age = $('input[name="age"]:checked').val()
+    if (age != 'none') {
+      param.age = age
+    }
+
+    const sex = $('input[name="sex"]:checked').val()
+    if (sex != 'none') {
+      param.sex = sex
+    }
+
+    const area = $('input[name="area"]').val().trim()
+    if (area.length > 0) {
+      param.area = area
+    }
+
+    const status = $('input[name="status"]:checked').val()
+    if (status != 'none') {
+      param.status = status
+    }
+
+    const reason = $('input[name="reason"]:checked').val()
+    if (reason != 'none') {
+      param.reason = reason
+    }
+
+    const cluster_no = $('select[name="cluster_no"]').val()
+    if (cluster_no != 'none') {
+      param.cluster_no = parseInt(cluster_no)
+    }
+
+    location.href = getQueryString('/persons', param)
+  })
+
+  $('#searchBody').on('show.bs.collapse', e => {
+    $('#searchBtnArrow').removeClass('fa-caret-right').addClass('fa-caret-down')
+  })
+  $('#searchBody').on('hidden.bs.collapse', e => {
+    $('#searchBtnArrow').removeClass('fa-caret-down').addClass('fa-caret-right')
+  })
+
+  if (Object.keys(searchParam).length > 0) {
+    $('#searchBody').addClass('show')
+    $('#searchBtnArrow').removeClass('fa-caret-right').addClass('fa-caret-down')
+  }
+}
 
 const pager = {
   page: parseInt(queryParams.page || '1'),
@@ -138,95 +500,95 @@ const createListRow = (person) => {
   row.find('[name="person.release_date"]')
     .text(person.release_date.format('M月D日'))
   row.find('[name="person.agesexarea"]').html(() => {
-    return $('<a>').attr('href', './' + person.no)
+    return $('<a>').attr('href', '/persons/' + person.no)
       .text(
         (config.AGE[person.age] || person.age + '.')
         + ' ' + (person.sex == 'unknown' ? '' : (config.SEX[person.sex] || person.sex + '.'))
         + ' ' + person.area)
   })
-  if (person['status'] == 'dead') {
-    row.find('[name="person.agesexarea"]').append('<span class="text-danger">（死亡）</span>')
-  }
 
+  // Reason
   const reason = row.find('[name="person.reason"]')
+  reason.empty()
   reason.removeClass('text-danger')
-  let text = ''
-  switch (person.reason) {
-    case 'contact':
-      reason.html('接触： ')
-      reason.append(() => {
-        if (person.contacts) {
-          return person.contacts.map(c => {
-            return $('<a>').attr('href', './' + c.person_no)
-              .text(c.relationship ? `[${c.person_no}（${c.relationship}）]` : `[${c.person_no}]`)
-          })
-        }
-        else if (person.case) {
-          return person.case
-        } else {
-          return '?'
-        }
-      })
-      break
-    case 'spot':
-      row.addClass('row-spot')
-      reason.text(`${person.spot}`)
-      break
-    case 'abroad':
-      row.addClass('row-abroad')
-      reason.text(`国外（${person.route.country}）`)
-      break
-    case 'other_area':
-      row.addClass('row-other-area')
-      reason.text(`県外（${person.route.area}）`)
-      break
-    case 'recurrence':
-      row.addClass('row-recurrence')
-      reason.text(`再感染： `)
+
+  // cluster
+  if (person.cluster_no) {
+    const cluster = _clusters.find(c => c.no == person.cluster_no)
+    if (cluster) {
+      const bgcolor = config.CLUSTER && config.CLUSTER[cluster.no] ? config.CLUSTER[cluster.no].bgcolor : '#ffff60'
+      row.css('background-color', bgcolor)
+//      row.addClass('row-cluster-' + person.cluster_no)
       reason.append(
-        $('<a>').attr('href', './' + person.former_no)
-          .text(`[${person.former_no}]`)
+        $('<span class="text-cluster pr-1">').text(`[${cluster.name}]`)
       )
-      break
-    case 'other':
-      reason.text(`その他（${person.route.text}）`)
-      break
-    case 'unknown':
-      row.addClass('row-unknown')
-      reason.text('不明')
-      break
+    }
   }
 
-  if (person.status == 'dead') {
-    row.addClass('row-dead')
+  // abroad/other-area/unknown
+  if (person.reason == 'abroad') {
+    reason.append($('<span class="pr-1">').text(person.route.country))
+  } else if (person.reason == 'other_area') {
+    reason.append($('<span class="pr-1 text-other-area">').text(person.route.area))
+    if (person.spot) {
+      reason.append($('<span class="text-spot">').text(person.spot))
+    }
+  } else if (person.reason == 'unknown') {
+    reason.append($('<span class="pr-1 text-danger">').text('不明'))
+  }
+
+  // contacts
+  if (person.contacts) {
+    reason.append(person.contacts.slice(0, 1).map(c => {
+      return $('<span class="pr-1">').html([
+        $('<a>').attr('href', '/persons/' + c.person_no).text(`[${c.person_no}]`),
+        c.place ? c.place : c.relationship ? c.relationship : ''
+      ])
+    }))
+    /*
+    if (person.contacts.length >= 2) {
+      reason.append(' 他')
+    }
+    */
+  }
+
+  // recurrence
+  if (person.reason == 'recurrence') {
+    // row.find('[name="person.notice"]').addClass('text-danger').text('【再】')
+    reason.append([
+      $('<span>').html([
+        '<span class="text-danger">【再】</span>',
+        $('<a>').attr('href', '/persons/' + person.former_no).text(`[${person.former_no}]`),
+        'と同一人'
+      ])
+    ])
+  }
+
+  // 退院・死亡
+  if (person.status == 'discharged') {
+    row.find('[name="person.status"]').addClass('text-success').text('退院')
+  } else if (person.status == 'dead') {
+    row.find('[name="person.status"]').addClass('text-danger').text('死亡')
   }
 
   return row
 }
 
 /**
- * Get Persons
+ * Find Persons
  */
-const findPersons = () => {
-  const option = {
+const findPersons = (searchParam, pager) => {
+  const option = Object.assign({
     offset: pager.rows * (pager.page - 1),
     limit: pager.rows,
-  }
-  return Person.find(option)
-  /*
-    .then(result => {
-      result.total = result.persons.length
-      result.persons = result.persons.slice(params.offset, params.offset + params.limit)
+  }, searchParam)
 
-      return result
-    })
-  */
+  return Person.find(option)
 }
 
-
- /**
-  * Show List
-  */
+/**
+ * Show List
+ */
 const showList = (result) => {
   return new Promise(resolve => {
     const persons = result.persons
@@ -279,8 +641,8 @@ const showListPagenation = (result) => {
     if (pager.firstPage >= 2) {
       $('#pagenation').append(
         $('<li class="page-item">').append(
-          $('<a class="page-link page-enable" href="#">')
-            .attr('href', '?page=1')
+          $('<a class="page-link page-enable">')
+            .attr('href', getQueryString('', Object.assign(searchParam, {page: 1})))
             .text(1)
         )
       )
@@ -292,7 +654,7 @@ const showListPagenation = (result) => {
     for (let p = pager.firstPage; p <= pager.lastPage; p++) {
       const li = $('<li class="page-item">')
         .append($('<a class="page-link page-enable">')
-          .attr('href', '?page=' + p)
+          .attr('href', getQueryString('', Object.assign(searchParam, {page: p})))
           .text(p))
       if (p == pager.page) li.addClass('active')
       $('#pagenation').append(li)
@@ -305,7 +667,7 @@ const showListPagenation = (result) => {
       $('#pagenation').append(
         $('<li class="page-item">').append(
           $('<a class="page-link page-enable" href="#">')
-            .attr('href', '?page=' + pager.totalPages)
+            .attr('href', getQueryString('', Object.assign(searchParam, {page: pager.totalPages})))
             .text(pager.totalPages)
         )
       )
@@ -314,7 +676,7 @@ const showListPagenation = (result) => {
     const nexta = $('<a class="page-link" href="#">').text('>>')
     if (pager.page < pager.totalPages) {
       nexta.addClass('page-enable')
-        .attr('href', '?page=' + (pager.page + 1))
+        .attr('href', getQueryString('', Object.assign(searchParam, {page: pager.page + 1})))
     } else {
       nexta.addClass('disabled').attr('tabindex', '-1')
     }
@@ -331,12 +693,20 @@ const showListPagenation = (result) => {
 /**
  * On Load
  */
+const loader = new Loader($('#loading'))
 
 Promise.resolve().then(() => {
-  $('#loading').removeClass('loading-stop').addClass('loading-start');
+  loader.start()
 
-  return findPersons()
-}).then(result => {
+  return Promise.all([
+    findPersons(searchParam, pager),
+    Cluster.find()
+  ])
+}).then(([result, clusters]) => {
+  _clusters = clusters
+
+  initSearchBox()
+
   $('#currentDate').text(result.current_date.format('Y年M年D日'))
   return showList(result)
 }).then(result => {
@@ -348,10 +718,10 @@ Promise.resolve().then(() => {
   // Pagenation
   return showListPagenation(result)
 }).then(result => {
-  $('#loading').removeClass('loading-start').addClass('loading-stop');
+  loader.stop()
 }).catch(e => {
+  loader.stop()
   console.log(e)
-  $('#loading').removeClass('loading-start').addClass('loading-stop');
   alert('内部エラーが発生しました。申し訳ありません')
 })
 

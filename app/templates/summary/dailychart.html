@@ -1,0 +1,199 @@
+{% extends "layout.html" %}
+
+{% block header_append %}
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+
+.barchart-area {
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  h2 {
+    font-size: 23px;
+  }
+  .list-table {
+    font-size: smaller;
+  }
+}
+</style>
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+<div class="container body-content py-3">
+  <div class="row">
+    <div class="offset-lg-2 col-lg-8 col-12">
+
+      <h2>愛知県COVID-12：集計</h2>
+
+      <ul class="nav nav-pills justify-content-center my-4">
+        <li class="nav-item">
+          <a class="nav-link" href="/summary">日別集計</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="#">日別グラフ</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/summary/varialchart">各種グラフ</a>
+        </li>
+      </ul>
+
+      <div class="row my-4">
+        <div class="col text-right">
+          <span id='currentDate'></span> 現在
+        </div>
+      </div>
+
+      <div class="row my-2">
+        <div class="col-12">
+          <div id="barChart" class="barchart-area"></div>
+          <div id="pieChart" class="piechart-area"></div>
+        </div>
+      </div>
+
+      <div class="container mt-4">
+        <div class="row">
+          <div class="offset-sm-3 col-sm-6">
+            <div class="card">
+              <ul class="list-group">
+                <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+                <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+                <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+                <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計</a></li>
+                <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading image -->
+<div id="loading" class="loading"></div>
+
+<div class="display-none">
+</div>
+
+<script type="module">
+import { getQueryString, getJapaneseHolidays, Loader } from '/static/js/util.js'
+import * as config from '/static/js/config.js'
+import * as summary from '/static/js/summary.js'
+
+moment.locale("ja")
+let jHolidays = {}
+
+google.charts.load('current', {
+  'packages': ['corechart']
+})
+
+/**
+ * Bar Chart
+ */
+const drawBarChart = (result) => {
+  return Promise.resolve().then(() => {
+    google.charts.setOnLoadCallback(() => {
+      const currentDate = moment(result.current_date)
+      const rows = result.rows
+
+      let date = moment(rows[0].release_date)
+      const data = []
+      while (date.isSameOrBefore(currentDate)) {
+        const row = rows.find(r => moment(r.release_date).isSame(date)) || {}
+        const values = row.values || []
+        data.push([
+          date.format('M月D日(dd)'),
+          ...Object.keys(config.REASON).map(r => (values.find(v => v.name == r) || {}).count || 0),
+          // row.total || 0
+          row.total || 0
+        ])
+        date.add('day', 1)
+      }
+      const chart = new google.visualization.BarChart($('#barChart')[0])
+      const table = google.visualization.arrayToDataTable([
+        ['日付', ...Object.values(config.REASON), { role: 'annotation' } ],
+        ...data
+      ])
+      const options = {
+        title: '日別集計',
+        titleTextStyle: {
+          fontSize: 16
+        },
+        width: '100%',
+        height: data.length * 30,
+        isStacked: true,
+        legend: {
+          position: 'top',
+          maxLines: 3,
+          textStyle: {
+            fontSize: 12
+          }
+        },
+        chartArea: {
+          top: 100,
+        },
+        bar: { groupWidth: '50%' },
+        annotations: {
+          textStyle: {
+            fontSize: 11,
+            color: 'black'
+          }
+        },
+        hAxis : {
+          gridlines: {
+            minSpacing: 100,
+          },
+          textStyle : {
+            fontSize: 12
+          }
+        },
+        vAxis : {
+          textStyle : {
+            fontSize: 11
+          }
+        },
+        colors: Object.values(config.REASON_COLORS)
+      }
+      chart.draw(table, options)
+    })
+    return true
+  })
+}
+
+const isHoliday = date => {
+  return jHolidays[date.format('YYYY-MM-DD')]
+}
+
+const loader = new Loader($('#loading'))
+
+Promise.resolve().then(() => {
+  loader.start()
+  return Promise.all([
+    getJapaneseHolidays(),
+    summary.getCross('release_date', 'reason')
+  ])
+}).then(([holidays, result]) => {
+  if (!result) throw new Error('Internal error')
+  jHolidays = holidays
+
+  const currentDate = moment(result.current_date)
+  $('#currentDate').text(currentDate.format('YYYY年M月D日'))
+
+  return drawBarChart(result)
+
+}).then(result => {
+  loader.stop()
+}).catch(e => {
+  loader.stop()
+  console.log(e)
+  alert('内部エラーが発生しました。申し訳ありません')
+})
+
+</script>
+{% endblock %}

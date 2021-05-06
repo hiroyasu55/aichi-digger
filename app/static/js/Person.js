@@ -1,17 +1,18 @@
 import { API_URL } from '/static/js/config.js'
+import { getQueryString } from '/static/js/util.js'
 
 const revisePerson = person => {
-  person.release_date = moment(person.release_date)
+  // person.release_date = moment(person.release_date)
+  Object.keys(person).filter(k => k.match(/_date$/)).map(k => {
+    person[k] = person[k] && person[k] != 'unknown' ? moment(person[k]) : ''
+  })
+
   return person
 }
 
 export function find(option = {}) {
   return new Promise(resolve => {
-    const params = []
-    if (option.offset) params.push({key: 'offset', value: option.offset})
-    if (option.limit) params.push({key: 'limit', value: option.limit})
-
-    const url = [API_URL + '/persons', params.map(p => p.key + '=' + p.value).join('&')].join('?')
+    const url = getQueryString(API_URL + '/persons', option)
     console.log('URL=' + url)
 
     $.getJSON(url)
@@ -47,9 +48,11 @@ export function findByNo(no) {
   })
 }
 
-export function getTree() {
+export function getTree(no) {
   return new Promise(resolve => {
-    const url = API_URL + '/persons/tree'
+    const option = {}
+    if (no) option.no = no
+    const url = getQueryString(API_URL + '/persons/tree', option)
     console.log('url:' + url)
     $.getJSON(url)
       .done(result => {

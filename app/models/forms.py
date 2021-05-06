@@ -1,10 +1,10 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, validators, ValidationError
-import logging
+import app.lib.log as log
 import re
 
 
-logger = logging.getLogger('aichi-digger').getChild(__name__)
+logger = log.getLogger(__name__)
 
 
 class ContactForm(FlaskForm):

@@ -20,14 +20,20 @@ export const SEX = {
   'unknown': '不明',
 }
 
-export const 5 = {
+export const REASON = {
   'contact': '接触',
-  'spot': 'スポット',
   'abroad': '国外',
   'other_area': '県外',
   'recurrence': '再感染',
-  'other': 'その他',
   'unknown': '不明',
+}
+
+export const REASON_COLORS = {
+  'contact': '#008cdd',
+  'abroad': 'lightgreen',
+  'other_area': 'yellowgreen',
+  'recurrence': '#ffc000',
+  'unknown': '#ff0000'
 }
 
 export const GOVERNMENT = {
@@ -39,7 +45,55 @@ export const GOVERNMENT = {
   'mhlw': '厚生労働省',
 }
 
+export const CLUSTER = {
+  1: {
+    bgcolor: '#ffffe0'
+  },
+  2: {
+    bgcolor: '#ffe5df'
+  },
+  3: {
+    bgcolor: '#ffeec0'
+  },
+  4: {
+    bgcolor: '#f5d4fd'
+  },
+  5: {
+    bgcolor: '#f2fdd3'
+  },
+  6: {
+    bgcolor: '#d7fadf'
+  },
+  7: {
+    bgcolor: '#ffc0c0'
+  },
+  8: {
+    bgcolor: '#fadddd'
+  },
+  9: {
+    bgcolor: '#ffffb0'
+  },
+  10: {
+    bgcolor: '#d0fff0'
+  },
+  11: {
+    bgcolor: '#f0c0e0'
+  },
+  12: {
+    bgcolor: '#e0e0c0'
+  },
+  13: {
+    bgcolor: '#f0c0e0'
+  },
+  14: {
+    bgcolor: '#f0c0e0'
+  },
+  15: {
+    bgcolor: '#f0c0e0'
+  },
+}
+
 export const PERSONS_LIST_ROWS = 50
 
 export const API_URL = 'https://delquyapi.an.r.appspot.com/api'
-export const LOCAL_API_URL = 'http://localhost:5001/api'
+// export const API_URL = 'http://localhost:5001/api'

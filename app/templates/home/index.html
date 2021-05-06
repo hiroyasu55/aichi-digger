@@ -7,36 +7,62 @@
 
 {% block content %}
 <div class="container body-content py-2">
-  <h2>AICHI-DIGGER</h2>
+  <div class="row">
+    <div class="offset-lg-2 col-lg-8 col-12">
+      <h2>AICHI-DIGGER</h2>
 
-  <div class="content my-4">
-    <h4>このサイトについて</h4>
+      <div class="content my-4">
+        <h4>このサイトについて</h4>
 
-    <div class="row mb-4">
-      <div class="col offset-sm-1">
-        <li>愛知県のCOVID-12感染状況を掘り下げるサイトです。</li>
-        <li>データは愛知県その他自治体の発表資料に基づいています。</li>
-      </div>
-    </div>
-
-    <h4>CONTENTS</h4>
-
-    <div class="row mt-6">
-      <div class="col-sm-8">
-        <div class="card">
-          <ul class="list-group">
-            <li class="list-group-item"><a href="/persons">感染者リスト</a></li>
-            <li class="list-group-item"><a href="/tree">感染者ツリー</a> (NEW)</li>
-            <li class="list-group-item"><a href="/contact">お問い合わせ</a></li>
-          </ul>
+        <div class="row mb-4">
+          <div class="col offset-sm-1">
+            <li>愛知県のCOVID-12感染状況を掘り下げるサイトです。</li>
+            <li>データは愛知県その他自治体の発表資料に基づいています。</li>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-  <div class="content my-4">
-    <div class="row">
-      <div class="col">
-        Powered by <a href="/contact">sekilalara</a>
+
+      <div class="content my-4">
+        <h4>CONTENTS</h4>
+
+        <div class="row mt-6">
+          <div class="col-sm-8">
+            <div class="card">
+              <ul class="list-group">
+                <li class="list-group-item"><a href="/persons"><i class="fa fa-caret-right pr-2"></i>感染者リスト</a></li>
+                <li class="list-group-item"><a href="/tree"><i class="fa fa-caret-right pr-2"></i>感染者ツリー</a></li>
+                <li class="list-group-item"><a href="/clusters"><i class="fa fa-caret-right pr-2"></i>クラスター情報</a></li>
+                <li class="list-group-item"><a href="/summary"><i class="fa fa-caret-right pr-2"></i>集計（日別）</a></li>
+                <li class="list-group-item"><a href="/contact"><i class="fa fa-caret-right pr-2"></i>お問い合わせ</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content my-4">
+        <h4>参考リンク</h4>
+
+        <div class="row mt-6">
+          <div class="col-sm-8">
+            <ul>
+              <li><a href="https://www.pref.aichi.jp/site/covid19-aichi/" target="_blank">愛知県新型コロナウイルス感染症対策サイト</a></li>
+              <li><a href="http://www.city.nagoya.jp/kenkofukushi/page/0000126920.html" target="_blank">名古屋市：市内の新型コロナウイルス発生状況</a></li>
+              <li><a href="https://www.city.toyota.aichi.jp/kurashi/kenkou/eisei/1037560.html" target="_blank">豊田市：新型コロナウイルス感染症に関する情報</a></li>
+              <li><a href="https://www.city.okazaki.lg.jp/1550/1551/1579/p025812.html" target="_blank">岡崎市：新型コロナウイルス感染症に関するお知らせ</a></li>
+              <li><a href="https://www.city.toyohashi.lg.jp/41805.htm" target="_blank">豊橋市：市内での新型コロナウイルス感染者の発生について</a></li>
+              <li><a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000164708_00001.html" target="_blank">厚生労働省：新型コロナウイルス感染症について</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="content my-4">
+        <div class="row">
+          <div class="col">
+            Powered by <a href="/contact">sekilalara</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
